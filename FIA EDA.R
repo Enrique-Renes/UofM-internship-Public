@@ -293,5 +293,3 @@ COND_cor_matrix
 #R markdown and export in PDF or HTML to send to Dr.Kwon 
 install.packages("rmarkdown")
 install.packages("knitr")
-install.packages("usethis")
-usethis::use_git_config(user.name="Enrique Reñé", user.email="kikerenes14@gmail.com")
