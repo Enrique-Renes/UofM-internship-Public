@@ -6,7 +6,7 @@ library(ggplot2)
 library(tidyverse)
 library(dplyr)
 library(vioplot)
-#this is the test for GIT
+
 #IMPORT DATA
 setwd("C:/Users/kiker/Desktop/UofM internship/Data")
 TN_TREE <- readr::read_csv("TN_TREE.csv")
