@@ -1,0 +1,100 @@
+---
+title: "RDBMS in R"
+author: "Enrique Reñé"
+date: "2023-07-19"
+output: html_document
+---
+
+
+# Creating a Relational Data Base Management System
+
+## Required libraries:
+
+```{r setup, include=TRUE}
+knitr::opts_chunk$set(message = FALSE, warning = FALSE)
+# Set CRAN mirror
+options(repos = "https://cran.rstudio.com/")
+
+install.packages(c("RSQL", "RSQLite", "tidyverse", "DBI"))
+library(RSQL)
+library(RSQLite)
+library(DBI)
+```
+
+Importing data:
+
+```{r message=FALSE, warning=FALSE, include=TRUE}
+setwd("C:/Users/kiker/Desktop/GitHub/UofM-internship-Public/Data")
+TN_TREE <- readr::read_csv("TN_TREE.csv")
+TN_PLOTSNAP <- readr::read_csv("TN_PLOTSNAP.csv")
+TN_COND <- readr::read_csv("TN_COND.csv")
+TN_POP_EVAL_GRP <- readr::read_csv("TN_POP_EVAL_GRP.csv")
+```
+
+## Creating and connecting to the database:
+
+```{r message=FALSE, warning=FALSE, include=TRUE}
+#CREATING THE DATABASE in the disk, instead of running it from RAM
+db <- dbConnect(SQLite(), "C:/Users/kiker/Desktop/GitHub/UofM-internship-Public/database2.db")
+
+#Loading the tables on to the DB
+dbWriteTable(conn = db, 
+             name = "TREE",
+             value = TN_TREE)
+
+dbWriteTable(conn = db, 
+             name = "PLOTSNAP",
+             value = TN_PLOTSNAP)
+
+dbWriteTable(conn = db, 
+             name = "COND",
+             value = TN_COND)
+
+dbWriteTable(conn = db, 
+             name = "POP_EVAL_GRP",
+             value = TN_POP_EVAL_GRP)
+```
+
+Checking that tables are within the DB:
+
+```{r message=TRUE, warning=FALSE, include=TRUE}
+dbListTables(db)
+```
+
+## Performing SQL queries to work with the database
+
+SQL QUERIES to JOIN the tables:
+
+```{r message=FALSE, warning=FALSE, include=TRUE}
+#tested succesfully
+res1 <- DBI::dbGetQuery(conn = db, statement = "SELECT PLOTSNAP.PLOT
+ FROM PLOTSNAP
+ INNER JOIN POP_EVAL_GRP ON POP_EVAL_GRP.CN = PLOTSNAP.EVAL_GRP_CN")
+
+#tested succesfully
+res <- DBI::dbGetQuery(conn = db, statement = "SELECT * FROM PLOTSNAP
+ INNER JOIN POP_EVAL_GRP ON POP_EVAL_GRP.CN = PLOTSNAP.EVAL_GRP_CN
+ INNER JOIN TREE ON PLOTSNAP.CN = TREE.PLT_CN
+ INNER JOIN COND ON PLOTSNAP.CN = COND.PLT_CN
+ INNER JOIN TREE AS T ON COND.CONDID = T.CONDID
+ LIMIT 100")
+
+#tested succesfully
+res2 <- DBI::dbGetQuery(conn = db, statement = "SELECT POP_EVAL_GRP.EVAL_GRP_DESCR, Sum([EXPVOL]*[TPA_UNADJ]*[adj_expvol_subp]) AS [T005_Number of growing-stock trees on forestland]
+
+FROM POP_EVAL_GRP INNER JOIN ((PLOTSNAP INNER JOIN COND ON PLOTSNAP.CN = COND.PLT_CN) INNER JOIN TREE ON (COND.PLT_CN = TREE.PLT_CN) AND (COND.CONDID = TREE.CONDID)) ON POP_EVAL_GRP.CN = PLOTSNAP.EVAL_GRP_CN
+
+WHERE (((COND.COND_STATUS_CD)=1) AND ((TREE.TREECLCD)=2) AND ((TREE.STATUSCD)=1) AND ((TREE.DIA)>=1))
+
+GROUP BY POP_EVAL_GRP.EVAL_GRP_DESCR;")
+```
+
+## Closing the database once finished working
+
+```{r, include=TRUE}
+DBI::dbDisconnect(db)
+```
+
+## Helpful information for making this script:
+
+<https://www.youtube.com/watch?v=F4HP3CXijC8&list=PLD8eCxFKntVH5EJmTBaZXWaU8cM_T9Lfl&index=84>
